@@ -60,14 +60,16 @@ class LazyAdamOptimizer(adam.AdamOptimizer):
     m_t = state_ops.scatter_update(m, grad.indices,
                                    beta1_t * array_ops.gather(m, grad.indices) +
                                    (1 - beta1_t) * grad.values,
-                                   use_locking=self._use_locking)
+                                   use_locking=self._use_locking,
+                                   is_duplicate=False)
 
     # v := beta2 * v + (1 - beta2) * (g_t * g_t)
     v = self.get_slot(var, "v")
     v_t = state_ops.scatter_update(v, grad.indices,
                                    beta2_t * array_ops.gather(v, grad.indices) +
                                    (1 - beta2_t) * math_ops.square(grad.values),
-                                   use_locking=self._use_locking)
+                                   use_locking=self._use_locking,
+                                   is_duplicate=False)
 
     # variable -= learning_rate * m_t / (epsilon_t + sqrt(v_t))
     m_t_slice = array_ops.gather(m_t, grad.indices)
@@ -75,5 +77,6 @@ class LazyAdamOptimizer(adam.AdamOptimizer):
     denominator_slice = math_ops.sqrt(v_t_slice) + epsilon_t
     var_update = state_ops.scatter_sub(var, grad.indices,
                                        lr * m_t_slice / denominator_slice,
-                                       use_locking=self._use_locking)
+                                       use_locking=self._use_locking,
+                                       is_duplicate=False)
     return control_flow_ops.group(var_update, m_t, v_t)

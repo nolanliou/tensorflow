@@ -106,7 +106,7 @@ class ScatterTest(test.TestCase):
           # Scatter via tensorflow
           ref = variables.Variable(old)
           ref.initializer.run()
-          tf_scatter(ref, indices, updates).eval()
+          tf_scatter(ref, indices, updates, is_duplicate=repeat_indices).eval()
           self.assertAllClose(ref.eval(), new)
 
   def _VariableRankTests(self, tf_scatter, repeat_indices=False):

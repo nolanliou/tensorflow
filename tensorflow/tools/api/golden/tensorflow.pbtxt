@@ -1598,15 +1598,15 @@ tf_module {
   }
   member_method {
     name: "scatter_add"
-    argspec: "args=[\'ref\', \'indices\', \'updates\', \'use_locking\', \'name\'], varargs=None, keywords=None, defaults=[\'None\', \'None\'], "
+    argspec: "args=[\'ref\', \'indices\', \'updates\', \'use_locking\', \'name\', \'is_duplicate\'], varargs=None, keywords=None, defaults=[\'None\', \'None\', \'None\'], "
   }
   member_method {
     name: "scatter_div"
-    argspec: "args=[\'ref\', \'indices\', \'updates\', \'use_locking\', \'name\'], varargs=None, keywords=None, defaults=[\'None\', \'None\'], "
+    argspec: "args=[\'ref\', \'indices\', \'updates\', \'use_locking\', \'name\', \'is_duplicate\'], varargs=None, keywords=None, defaults=[\'None\', \'None\', \'None\'], "
   }
   member_method {
     name: "scatter_mul"
-    argspec: "args=[\'ref\', \'indices\', \'updates\', \'use_locking\', \'name\'], varargs=None, keywords=None, defaults=[\'None\', \'None\'], "
+    argspec: "args=[\'ref\', \'indices\', \'updates\', \'use_locking\', \'name\', \'is_duplicate\'], varargs=None, keywords=None, defaults=[\'None\', \'None\', \'None\'], "
   }
   member_method {
     name: "scatter_nd"
@@ -1626,11 +1626,11 @@ tf_module {
   }
   member_method {
     name: "scatter_sub"
-    argspec: "args=[\'ref\', \'indices\', \'updates\', \'use_locking\', \'name\'], varargs=None, keywords=None, defaults=[\'None\', \'None\'], "
+    argspec: "args=[\'ref\', \'indices\', \'updates\', \'use_locking\', \'name\', \'is_duplicate\'], varargs=None, keywords=None, defaults=[\'None\', \'None\', \'None\'], "
   }
   member_method {
     name: "scatter_update"
-    argspec: "args=[\'ref\', \'indices\', \'updates\', \'use_locking\', \'name\'], varargs=None, keywords=None, defaults=[\'None\', \'None\'], "
+    argspec: "args=[\'ref\', \'indices\', \'updates\', \'use_locking\', \'name\', \'is_duplicate\'], varargs=None, keywords=None, defaults=[\'None\', \'None\', \'None\'], "
   }
   member_method {
     name: "segment_max"

@@ -589,7 +589,7 @@ class Variable(object):
     """
     return state_ops.assign_sub(self._variable, delta, use_locking=use_locking)
 
-  def scatter_sub(self, sparse_delta, use_locking=False):
+  def scatter_sub(self, sparse_delta, use_locking=False, is_duplicate=True):
     """Subtracts `IndexedSlices` from this variable.
 
     This is essentially a shortcut for `scatter_sub(self, sparse_delta.indices,
@@ -612,7 +612,8 @@ class Variable(object):
         self._variable,
         sparse_delta.indices,
         sparse_delta.values,
-        use_locking=use_locking)
+        use_locking=use_locking,
+        is_duplicate=is_duplicate)
 
   def _strided_slice_assign(self,
                             begin,

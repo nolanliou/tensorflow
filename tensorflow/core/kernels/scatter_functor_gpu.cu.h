@@ -75,7 +75,8 @@ struct ScatterFunctor<GPUDevice, T, Index, op> {
   Index operator()(OpKernelContext* c, const GPUDevice& d,
                    typename TTypes<T>::Matrix params,
                    typename TTypes<T>::ConstMatrix updates,
-                   typename TTypes<Index>::ConstFlat indices) {
+                   typename TTypes<Index>::ConstFlat indices,
+                   bool is_duplicate) {
     // TODO(b/31801742): Implement indices range check. The hardest part is
     // with returning a value after the range check, as we do not want to do
     // device to host memcpy during a stream.

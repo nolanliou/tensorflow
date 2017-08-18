@@ -78,6 +78,8 @@ class ScatterUpdateOp : public OpKernel {
   //   in the graph?
   explicit ScatterUpdateOp(OpKernelConstruction* c) : OpKernel(c) {
     OP_REQUIRES_OK(c, c->GetAttr("use_locking", &use_exclusive_lock_));
+    OP_REQUIRES_OK(c, c->GetAttr("is_duplicate", &is_duplicate_));
+    is_duplicate_ = is_duplicate_ || use_exclusive_lock_;
   }
 
   void Compute(OpKernelContext* c) override {
@@ -92,6 +94,7 @@ class ScatterUpdateOp : public OpKernel {
 
  private:
   bool use_exclusive_lock_;
+  bool is_duplicate_;
 
   void DoCompute(OpKernelContext* c) {
     Tensor params = c->mutable_input(0, use_exclusive_lock_);
@@ -125,7 +128,7 @@ class ScatterUpdateOp : public OpKernel {
 
       functor::ScatterFunctor<Device, T, Index, op> functor;
       const Index bad_i = functor(c, c->template eigen_device<Device>(),
-                                  params_flat, updates_flat, indices_flat);
+                                  params_flat, updates_flat, indices_flat, is_duplicate_);
       OP_REQUIRES(
           c, bad_i < 0,
           errors::InvalidArgument(

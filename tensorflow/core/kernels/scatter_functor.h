@@ -21,10 +21,11 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/kernels/bounds_check.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow/core/util/work_sharder.h"
+#include "tensorflow/core/framework/op_kernel.h"
 
 namespace tensorflow {
 
-class OpKernelContext;
 typedef Eigen::ThreadPoolDevice CPUDevice;
 typedef Eigen::GpuDevice GPUDevice;
 #ifdef TENSORFLOW_USE_SYCL
@@ -128,7 +129,8 @@ struct ScatterFunctor {
   Index operator()(OpKernelContext* c, const Device& d,
                    typename TTypes<T>::Matrix params,
                    typename TTypes<T>::ConstMatrix updates,
-                   typename TTypes<Index>::ConstFlat indices);
+                   typename TTypes<Index>::ConstFlat indices,
+                   bool is_duplicate);
 };
 
 template <typename Device, typename T, typename Index, scatter_op::UpdateOp op>
@@ -136,21 +138,47 @@ struct ScatterFunctorBase {
   Index operator()(OpKernelContext* c, const Device& d,
                    typename TTypes<T>::Matrix params,
                    typename TTypes<T>::ConstMatrix updates,
-                   typename TTypes<Index>::ConstFlat indices) {
+                   typename TTypes<Index>::ConstFlat indices,
+                   bool is_duplicate) {
     // indices and params sizes were validated in DoCompute().
     const Index N = static_cast<Index>(indices.size());
     const Index limit = static_cast<Index>(params.dimension(0));
-    for (Index i = 0; i < N; i++) {
-      // Grab the index and check its validity.  An earlier version of the
-      // code checked it and then grabbed it from memory a second time, which
-      // was a security risk since it could have changed in between.
-      const Index index = ::tensorflow::internal::SubtleMustCopy(indices(i));
-      if (!FastBoundsCheck(index, limit)) return i;
-      // Copy last Ndim-1 dimensions of updates[i] to params[index]
-      scatter_op::internal::Assign<op>::Run(params.template chip<0>(index),
-                                            updates.template chip<0>(i));
+    if (is_duplicate) {
+      for (Index i = 0; i < N; i++) {
+        // Grab the index and check its validity.  An earlier version of the
+        // code checked it and then grabbed it from memory a second time, which
+        // was a security risk since it could have changed in between.
+        const Index index = ::tensorflow::internal::SubtleMustCopy(indices(i));
+        if (!FastBoundsCheck(index, limit)) return i;
+        // Copy last Ndim-1 dimensions of updates[i] to params[index]
+        scatter_op::internal::Assign<op>::Run(params.template chip<0>(index),
+                                              updates.template chip<0>(i));
+      }
+      return -1;
+    } else {
+      mutex mu;
+      Index result = -1 GUARDED_BY(mu);
+      auto work = [&params, &updates, &indices, &limit, &mu, &result]
+              (int64 start, int64 end) {
+        for (Index i = start; i < end; ++i) {
+          // Grab the index and check its validity.  An earlier version of the
+          // code checked it and then grabbed it from memory a second time, which
+          // was a security risk since it could have changed in between.
+          const Index index = ::tensorflow::internal::SubtleMustCopy(indices(i));
+          if (!FastBoundsCheck(index, limit)) {
+            mutex_lock l(mu);
+            result = i;
+          }
+          // Copy last Ndim-1 dimensions of updates[i] to params[index]
+          scatter_op::internal::Assign<op>::Run(params.template chip<0>(index),
+                                                updates.template chip<0>(i));
+        }
+      };
+      auto worker_threads = c->device()->tensorflow_cpu_worker_threads();
+      Shard(worker_threads->num_threads, worker_threads->workers, N,
+            updates.dimension(1) * sizeof(T), work);
+      return result;
     }
-    return -1;
   }
 };
 
@@ -184,7 +212,8 @@ struct ScatterFunctorBase<CPUDevice, T, Index, scatter_op::UpdateOp::ASSIGN> {
   Index operator()(OpKernelContext* c, const CPUDevice& d,
                    typename TTypes<T>::Matrix params,
                    typename TTypes<T>::ConstMatrix updates,
-                   typename TTypes<Index>::ConstFlat indices) {
+                   typename TTypes<Index>::ConstFlat indices,
+                   bool is_duplicate) {
     // indices and params sizes were validated in DoCompute().
     const Index N = static_cast<Index>(indices.size());
     const Index limit = static_cast<Index>(params.dimension(0));

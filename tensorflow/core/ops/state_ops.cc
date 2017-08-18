@@ -258,6 +258,7 @@ REGISTER_OP("ScatterUpdate")
     .Attr("T: type")
     .Attr("Tindices: {int32, int64}")
     .Attr("use_locking: bool = true")
+    .Attr("is_duplicate: bool = true")
     .SetShapeFn(ScatterUpdateShape)
     .Doc(R"doc(
 Applies sparse updates to a variable reference.
@@ -295,6 +296,8 @@ output_ref:= Same as `ref`.  Returned as a convenience for operations that want
   to use the updated values after the update is done.
 use_locking: If True, the assignment will be protected by a lock;
   otherwise the behavior is undefined, but may exhibit less contention.
+is_duplicate: If True, use single thread, otherwise use multiple threads for better
+  performance, default is True.
 )doc");
 
 REGISTER_OP("ScatterAdd")
@@ -305,6 +308,7 @@ REGISTER_OP("ScatterAdd")
     .Attr("T: numbertype")
     .Attr("Tindices: {int32, int64}")
     .Attr("use_locking: bool = false")
+    .Attr("is_duplicate: bool = true")
     .SetShapeFn(ScatterUpdateShape)
     .Doc(R"doc(
 Adds sparse updates to a variable reference.
@@ -339,6 +343,8 @@ output_ref:= Same as `ref`.  Returned as a convenience for operations that want
   to use the updated values after the update is done.
 use_locking: If True, the addition will be protected by a lock;
   otherwise the behavior is undefined, but may exhibit less contention.
+is_duplicate: If True, use single thread, otherwise use multiple threads for better
+  performance, default is True.
 )doc");
 
 REGISTER_OP("ScatterSub")
@@ -349,6 +355,7 @@ REGISTER_OP("ScatterSub")
     .Attr("T: numbertype")
     .Attr("Tindices: {int32, int64}")
     .Attr("use_locking: bool = false")
+    .Attr("is_duplicate: bool = true")
     .SetShapeFn(ScatterUpdateShape)
     .Doc(R"doc(
 Subtracts sparse updates to a variable reference.
@@ -383,6 +390,8 @@ output_ref:= Same as `ref`.  Returned as a convenience for operations that want
   to use the updated values after the update is done.
 use_locking: If True, the subtraction will be protected by a lock;
   otherwise the behavior is undefined, but may exhibit less contention.
+is_duplicate: If True, use single thread, otherwise use multiple threads for better
+  performance, default is True.
 )doc");
 
 REGISTER_OP("ScatterMul")
@@ -393,6 +402,7 @@ REGISTER_OP("ScatterMul")
     .Attr("T: numbertype")
     .Attr("Tindices: {int32, int64}")
     .Attr("use_locking: bool = false")
+    .Attr("is_duplicate: bool = true")
     .SetShapeFn(ScatterUpdateShape)
     .Doc(R"doc(
 Multiplies sparse updates into a variable reference.
@@ -425,6 +435,8 @@ output_ref:= Same as `ref`.  Returned as a convenience for operations that want
   to use the updated values after the update is done.
 use_locking: If True, the operation will be protected by a lock;
   otherwise the behavior is undefined, but may exhibit less contention.
+is_duplicate: If True, use single thread, otherwise use multiple threads for better
+  performance, default is True.
 )doc");
 
 REGISTER_OP("ScatterDiv")
@@ -435,6 +447,7 @@ REGISTER_OP("ScatterDiv")
     .Attr("T: numbertype")
     .Attr("Tindices: {int32, int64}")
     .Attr("use_locking: bool = false")
+    .Attr("is_duplicate: bool = true")
     .SetShapeFn(ScatterUpdateShape)
     .Doc(R"doc(
 Divides a variable reference by sparse updates.
@@ -467,6 +480,8 @@ output_ref:= Same as `ref`.  Returned as a convenience for operations that want
   to use the updated values after the update is done.
 use_locking: If True, the operation will be protected by a lock;
   otherwise the behavior is undefined, but may exhibit less contention.
+is_duplicate: If True, use single thread, otherwise use multiple threads for better
+  performance, default is True.
 )doc");
 
 REGISTER_OP("ScatterNdUpdate")

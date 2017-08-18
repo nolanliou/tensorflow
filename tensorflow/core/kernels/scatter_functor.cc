@@ -32,7 +32,8 @@ namespace functor {
       OpKernelContext* c, const GPUDevice& d,                \
       typename TTypes<T>::Matrix params,                     \
       typename TTypes<T>::ConstMatrix updates,               \
-      typename TTypes<Index>::ConstFlat indices);            \
+      typename TTypes<Index>::ConstFlat indices,             \
+      bool is_duplicate);                                    \
   extern template struct ScatterFunctor<GPUDevice, T, Index, op>;
 
 #define DECLARE_GPU_SPECS_INDEX(T, Index)                       \

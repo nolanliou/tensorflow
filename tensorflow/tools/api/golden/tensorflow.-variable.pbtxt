@@ -88,7 +88,7 @@ tf_class {
   }
   member_method {
     name: "scatter_sub"
-    argspec: "args=[\'self\', \'sparse_delta\', \'use_locking\'], varargs=None, keywords=None, defaults=[\'False\'], "
+    argspec: "args=[\'self\', \'sparse_delta\', \'use_locking\', \'is_duplicate\'], varargs=None, keywords=None, defaults=[\'False\', \'True\'], "
   }
   member_method {
     name: "set_shape"

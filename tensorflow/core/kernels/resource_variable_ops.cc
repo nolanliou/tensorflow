@@ -411,7 +411,7 @@ class ResourceScatterUpdateOp : public OpKernel {
 
       functor::ScatterFunctor<Device, T, Index, op> functor;
       const Index bad_i = functor(c, c->template eigen_device<Device>(),
-                                  params_flat, updates_flat, indices_flat);
+                                  params_flat, updates_flat, indices_flat, true);
       OP_REQUIRES(c, bad_i < 0,
                   errors::InvalidArgument(
                       "indices", SliceDebugString(indices.shape(), bad_i),
