@@ -154,7 +154,7 @@ struct ScatterFunctorBase {
         // was a security risk since it could have changed in between.
         const Index index = ::tensorflow::internal::SubtleMustCopy(indices(i));
         if (!FastBoundsCheck(index, limit)) {
-          mutex_lock(mu);
+          mutex_lock l(mu);
           result = i;
           return;
         }
