@@ -21,10 +21,11 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/kernels/bounds_check.h"
 #include "tensorflow/core/platform/types.h"
+#include "tensorflow/core/util/work_sharder.h"
+#include "tensorflow/core/framework/op_kernel.h"
 
 namespace tensorflow {
 
-class OpKernelContext;
 typedef Eigen::ThreadPoolDevice CPUDevice;
 typedef Eigen::GpuDevice GPUDevice;
 #ifdef TENSORFLOW_USE_SYCL
@@ -140,16 +141,33 @@ struct ScatterFunctorBase {
     // indices and params sizes were validated in DoCompute().
     const Index N = static_cast<Index>(indices.size());
     const Index limit = static_cast<Index>(params.dimension(0));
-    for (Index i = 0; i < N; i++) {
-      // Grab the index and check its validity.  An earlier version of the
-      // code checked it and then grabbed it from memory a second time, which
-      // was a security risk since it could have changed in between.
-      const Index index = ::tensorflow::internal::SubtleMustCopy(indices(i));
-      if (!FastBoundsCheck(index, limit)) return i;
-      // Copy last Ndim-1 dimensions of updates[i] to params[index]
-      scatter_op::internal::Assign<op>::Run(params.template chip<0>(index),
-                                            updates.template chip<0>(i));
-    }
+    auto worker_threads = c->device()->tensorflow_cpu_worker_threads();
+    mutex mutexes[N];
+    mutex mu;
+    Index result = -1 GUARDED_BY(mu);
+    auto work = [&params, &updates, &indices, &mutexes, N, limit, &mu, &result]
+            (int64 start, int64 end) {
+      Index mu_idx;
+      for (Index i = start; i < end; i++) {
+        // Grab the index and check its validity.  An earlier version of the
+        // code checked it and then grabbed it from memory a second time, which
+        // was a security risk since it could have changed in between.
+        const Index index = ::tensorflow::internal::SubtleMustCopy(indices(i));
+        if (!FastBoundsCheck(index, limit)) {
+          mutex_lock(mu);
+          result = i;
+          return;
+        }
+        mu_idx = index % N;
+        mutexes[mu_idx].lock();
+        // Copy last Ndim-1 dimensions of updates[i] to params[index]
+        scatter_op::internal::Assign<op>::Run(params.template chip<0>(index),
+                                              updates.template chip<0>(i));
+        mutexes[mu_idx].unlock();
+      }
+    };
+    Shard(worker_threads->num_threads, worker_threads->workers, N,
+          updates.dimension(1) * sizeof(T), work);
     return -1;
   }
 };
