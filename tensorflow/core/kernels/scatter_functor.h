@@ -168,7 +168,7 @@ struct ScatterFunctorBase {
     };
     Shard(worker_threads->num_threads, worker_threads->workers, N,
           updates.dimension(1) * sizeof(T), work);
-    return -1;
+    return result;
   }
 };
 
