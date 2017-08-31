@@ -213,6 +213,7 @@ class DeviceFinder {
     mutex_lock l(mu_);
     // TODO(mrry): Propagate a timeout here, since `num_pending_` may
     // never become zero.
+    int count = 0;
     while (num_pending_ != 0) {
       pending_zero_.wait_for(l, std::chrono::milliseconds(kLoggingPeriodMs));
       if (num_pending_ != 0) {
@@ -222,6 +223,19 @@ class DeviceFinder {
                 << "CreateSession still waiting for response from worker: "
                 << targets_[i];
           }
+        }
+        ++count;
+        if (count == 2) {
+          // Talk to all workers to get the list of available devices.
+          using std::placeholders::_1;
+          using std::placeholders::_2;
+          for (size_t i = 0; i < targets_.size(); ++i) {
+            if (!seen_targets_[i]) {
+              NewRemoteDevices(env_->env, worker_cache_, targets_[i],
+                               std::bind(&ME::WhenFound, this, i, _1, _2));
+            }
+          }
+          count = 0;
         }
       }
     }

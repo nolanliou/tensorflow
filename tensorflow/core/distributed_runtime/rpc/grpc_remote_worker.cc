@@ -213,6 +213,9 @@ class GrpcRemoteWorker : public WorkerInterface {
       if (call_opts) {
         call_opts->SetCancelCallback([this]() { context_.TryCancel(); });
       }
+      // set deadline
+      context_.set_deadline(std::chrono::system_clock::now() +
+                       std::chrono::milliseconds(kLoggingPeriodMs));
 
       failure_.store(false);
       remaining_callbacks_.store(4);  // Init/Read/Write/Finish callbacks
@@ -292,6 +295,7 @@ class GrpcRemoteWorker : public WorkerInterface {
     std::atomic<bool> failure_;
     std::atomic<int> remaining_callbacks_;
     Notification call_initialized_;
+    const int32 kLoggingPeriodMs = 10 * 1000;
   };
 
   // Utility method for issuing a generic asynchronous request. The
