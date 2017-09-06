@@ -176,6 +176,7 @@ class GrpcWorkerService : public AsyncServiceInterface {
 
   void GetStatusHandler(WorkerCall<GetStatusRequest, GetStatusResponse>* call) {
     Schedule([this, call]() {
+        call->
       Status s = worker_->GetStatus(&call->request, &call->response);
       call->SendResponse(ToGrpcStatus(s));
     });

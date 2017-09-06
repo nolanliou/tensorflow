@@ -213,9 +213,10 @@ class DeviceFinder {
     mutex_lock l(mu_);
     // TODO(mrry): Propagate a timeout here, since `num_pending_` may
     // never become zero.
-    int count = 0;
     while (num_pending_ != 0) {
+      LOG(INFO) << "condition_variable wait" << num_pending_;
       pending_zero_.wait_for(l, std::chrono::milliseconds(kLoggingPeriodMs));
+      LOG(INFO) << "condition_variable lock" << num_pending_;
       if (num_pending_ != 0) {
         for (size_t i = 0; i < targets_.size(); ++i) {
           if (!seen_targets_[i]) {
@@ -224,21 +225,9 @@ class DeviceFinder {
                 << targets_[i];
           }
         }
-        ++count;
-        if (count == 2) {
-          // Talk to all workers to get the list of available devices.
-          using std::placeholders::_1;
-          using std::placeholders::_2;
-          for (size_t i = 0; i < targets_.size(); ++i) {
-            if (!seen_targets_[i]) {
-              NewRemoteDevices(env_->env, worker_cache_, targets_[i],
-                               std::bind(&ME::WhenFound, this, i, _1, _2));
-            }
-          }
-          count = 0;
-        }
       }
     }
+    LOG(INFO) << "All devices found";
     return status_;
   }
 
@@ -275,19 +264,34 @@ class DeviceFinder {
   std::vector<bool> seen_targets_ GUARDED_BY(mu_);
   Status status_;
 
+  void SendNewRemoteDevice(int target_index) {
+    using std::placeholders::_1;
+    using std::placeholders::_2;
+    NewRemoteDevices(env_->env, worker_cache_, targets_[target_index],
+                     std::bind(&ME::WhenFound, this, target_index, _1, _2));
+  }
   void WhenFound(int target_index, const Status& s,
                  std::vector<Device*>* devices) {
     mutex_lock l(mu_);
-    seen_targets_[target_index] = true;
     if (!s.ok()) {
-      LOG(ERROR) << "Master init: " << s;
-      status_.Update(s);
+      if (s.code() != error::DEADLINE_EXCEEDED) {
+        LOG(ERROR) << "Master init: " << s;
+        status_.Update(s);
+      } else {
+        if (!seen_targets_[target_index]) {
+          LOG(INFO) << "Get response from worker " << target_index <<" timeout, resent request. num pending: " << num_pending_;
+          SendNewRemoteDevice(target_index);
+          return;
+        }
+      }
     } else {
       found_.insert(found_.end(), devices->begin(), devices->end());
       devices->clear();
     }
+    seen_targets_[target_index] = true;
     --num_pending_;
     if (num_pending_ == 0) {
+      LOG(INFO) << "Found num pending is zero";
       pending_zero_.notify_all();
     }
   }
